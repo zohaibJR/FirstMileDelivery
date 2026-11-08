@@ -49,6 +49,11 @@ public sealed class FppPlayerController : MonoBehaviour
     public bool IsCrouched => isCrouched;
     public float CurrentSpeed => horizontalVelocity.magnitude;
     public Transform ViewPivot => viewPivot;
+    public bool EnableSprinting
+    {
+        get => enableSprinting;
+        set => enableSprinting = value;
+    }
 
     private void Awake()
     {

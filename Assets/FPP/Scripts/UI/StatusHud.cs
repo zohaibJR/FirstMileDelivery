@@ -1,10 +1,11 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 /// <summary>
 /// Top-left status display. Put this on the FPP Player.
 /// Shows: money (counts up smoothly), floating +$ / -$ payment notifications,
-/// the current day, and how many deliveries are left.
+/// the current day, how many deliveries are left, and player energy stamina bar.
 /// Supports drag-and-drop UI references from your Canvas.
 /// </summary>
 public sealed class StatusHud : MonoBehaviour
@@ -21,6 +22,18 @@ public sealed class StatusHud : MonoBehaviour
     [Tooltip("TextMeshProUGUI for remaining deliveries count.")]
     [SerializeField] private TextMeshProUGUI deliveriesText;
 
+    [Header("Energy Bar (Optional)")]
+    [Tooltip("UI Image with Image Type = Filled (Horizontal) for stamina / energy bar.")]
+    [SerializeField] private Image energyBarFill;
+    [Tooltip("Optional TextMeshProUGUI displaying energy percentage (e.g. Energy 85%).")]
+    [SerializeField] private TextMeshProUGUI energyText;
+    [Tooltip("Gradient used to tint the energy bar from empty to full.")]
+    [SerializeField] private Gradient energyGradient;
+
+    [Header("Bills (Optional)")]
+    [Tooltip("TextMeshProUGUI showing the next bill day and any debt.")]
+    [SerializeField] private TextMeshProUGUI billsText;
+
     [Header("Look")]
     [SerializeField] private Color moneyColor = new Color(0.55f, 1f, 0.65f);
     [SerializeField] private Color gainColor = new Color(0.55f, 1f, 0.65f);
@@ -31,6 +44,9 @@ public sealed class StatusHud : MonoBehaviour
     private DailyBatchManager batch;
     private TimeManager time;
     private string lastDayLabel;
+
+    private BillsManager bills;
+    private string lastBillsLabel;
 
     private float displayedMoney;
     private int lastShownMoney = int.MinValue;
@@ -50,9 +66,16 @@ public sealed class StatusHud : MonoBehaviour
             floatText.text = string.Empty;
         }
 
+        if (energyGradient == null || energyGradient.colorKeys.Length == 0)
+        {
+            energyGradient = DefaultEnergyGradient();
+        }
+
         economy = EconomyManager.Instance;
         batch = DailyBatchManager.Instance;
         time = TimeManager.Instance;
+
+        bills = BillsManager.Instance;
 
         if (economy != null)
         {
@@ -117,6 +140,28 @@ public sealed class StatusHud : MonoBehaviour
 
         UpdateFloatingText();
         UpdateDayLabel();
+        UpdateEnergyBar();
+        UpdateBillsLabel();
+
+    }
+
+    private void UpdateBillsLabel()
+    {
+        if (billsText == null || bills == null)
+            return;
+
+        int days = bills.DaysUntilNextBill;
+        string when = days == 1 ? "tomorrow" : $"in {days} days";
+        string label = $"Bills: ${bills.WeeklyTotal} due {when} (Day {bills.NextBillDay})";
+
+        if (bills.Debt > 0)
+            label += $"\n<color=#FF8A80>Debt: ${bills.Debt}</color>";
+
+        if (label == lastBillsLabel)
+            return;
+
+        lastBillsLabel = label;
+        billsText.text = label;
     }
 
     private void UpdateDayLabel()
@@ -172,6 +217,31 @@ public sealed class StatusHud : MonoBehaviour
             floatText.text = string.Empty;
     }
 
+    private void UpdateEnergyBar()
+    {
+        if (energyBarFill == null && energyText == null)
+            return;
+
+        PlayerEnergy energy = PlayerEnergy.Instance;
+        if (energy == null)
+            return;
+
+        float normalized = energy.NormalizedEnergy;
+
+        if (energyBarFill != null)
+        {
+            energyBarFill.fillAmount = Mathf.MoveTowards(energyBarFill.fillAmount, normalized, Time.unscaledDeltaTime * 2.5f);
+
+            if (energyGradient != null)
+                energyBarFill.color = energyGradient.Evaluate(energyBarFill.fillAmount);
+        }
+
+        if (energyText != null)
+        {
+            energyText.text = $"Energy {Mathf.RoundToInt(energy.CurrentEnergy)}%";
+        }
+    }
+
     private void OnTransaction(int change, string reason)
     {
         if (floatText == null)
@@ -200,5 +270,24 @@ public sealed class StatusHud : MonoBehaviour
             text += "   <size=70%><color=#FFD54A>Collect them at the warehouse</color></size>";
 
         deliveriesText.text = text;
+    }
+
+    private static Gradient DefaultEnergyGradient()
+    {
+        Gradient g = new Gradient();
+        g.SetKeys(
+            new[]
+            {
+                new GradientColorKey(new Color(0.9f, 0.25f, 0.2f), 0.0f),  // Red
+                new GradientColorKey(new Color(0.95f, 0.8f, 0.2f), 0.35f), // Yellow
+                new GradientColorKey(new Color(0.25f, 0.85f, 0.45f), 0.7f) // Green
+            },
+            new[]
+            {
+                new GradientAlphaKey(1f, 0f),
+                new GradientAlphaKey(1f, 1f)
+            }
+        );
+        return g;
     }
 }
