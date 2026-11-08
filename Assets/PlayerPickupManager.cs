@@ -32,7 +32,7 @@ public class PlayerPickupManager : MonoBehaviour
         Debug.Log("***********************");
     }
 
-        public void ObjectDropped()
+    public void ObjectDropped()
     {
         isPlayerHoldingPakcage = false;
         Debug.Log("------------------");
