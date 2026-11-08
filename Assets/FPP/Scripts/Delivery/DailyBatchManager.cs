@@ -71,6 +71,11 @@ public sealed class DailyBatchManager : MonoBehaviour
     /// <summary>Fired once when the last package of the day is delivered (daily bonus hooks in here).</summary>
     public event Action BatchCompleted;
 
+    /// <summary>Fired once when the player collects the whole batch at the counter (daily salary hooks in here).</summary>
+    public event Action BatchCollected;
+
+    private TimeManager subscribedTime;
+
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -84,14 +89,30 @@ public sealed class DailyBatchManager : MonoBehaviour
 
     private void OnDestroy()
     {
+        if (subscribedTime != null)
+            subscribedTime.DayStarted -= StartDay;
+
         if (Instance == this)
             Instance = null;
     }
 
     private void Start()
     {
-        if (generateOnStart)
+        // With a TimeManager in the scene, it decides the day number and starts every new morning.
+        TimeManager time = TimeManager.Instance;
+
+        if (time != null)
+        {
+            subscribedTime = time;
+            time.DayStarted += StartDay;
+
+            if (generateOnStart)
+                StartDay(time.Day);
+        }
+        else if (generateOnStart)
+        {
             StartDay(startDay);
+        }
     }
 
     /// <summary>Starts a new day and creates its batch of packages.</summary>
@@ -109,6 +130,7 @@ public sealed class DailyBatchManager : MonoBehaviour
             a.collected = true;
 
         BatchChanged?.Invoke();
+        BatchCollected?.Invoke();
     }
 
     public int DeliveredCount => TotalCount - RemainingCount;
@@ -224,7 +246,12 @@ public sealed class DailyBatchManager : MonoBehaviour
     [ContextMenu("Debug: Start Next Day")]
     private void DebugNextDay()
     {
-        if (Application.isPlaying)
+        if (!Application.isPlaying)
+            return;
+
+        if (TimeManager.Instance != null)
+            TimeManager.Instance.RequestNextDay("Debug");
+        else
             StartDay(Day + 1);
     }
 }

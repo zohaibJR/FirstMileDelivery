@@ -1,5 +1,7 @@
 ﻿<Solution>
   <Project Path="MerryYellow.CodeAssist.Editor.csproj" />
   <Project Path="Assembly-CSharp.csproj" />
+  <Project Path="Hierarchy2.Editor.csproj" />
   <Project Path="Assembly-CSharp-Editor.csproj" />
+  <Project Path="Hierarchy2.Runtime.csproj" />
 </Solution>

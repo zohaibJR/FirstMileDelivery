@@ -3,15 +3,14 @@ using UnityEngine.InputSystem;
 
 /// <summary>
 /// Put this on the FPP Player. Holds one PickupItem in front of the camera and lets the player
-/// inspect it (freeze the view, rotate with the mouse, zoom with the wheel), drop it, throw it,
-/// or store it in the inventory. Hints are drawn by InteractionHud.
+/// inspect it (freeze the view, rotate with the mouse, zoom with the wheel), drop it, or throw it.
+/// Hints are drawn by InteractionHud.
 /// </summary>
 public sealed class ItemCarrier : MonoBehaviour
 {
     [Header("References (auto-found if empty)")]
     [SerializeField] private Camera viewCamera;
     [SerializeField] private PlayerInteractor interactor;
-    [SerializeField] private Inventory inventory;
 
     [Header("Carry Position (camera space)")]
     [SerializeField, Min(0.3f)] private float holdDistance = 1.1f;
@@ -40,7 +39,6 @@ public sealed class ItemCarrier : MonoBehaviour
     [Header("Input (Right mouse button also inspects)")]
     [SerializeField] private Key inspectKey = Key.F;
     [SerializeField] private Key dropKey = Key.Q;
-    [SerializeField] private Key storeKey = Key.R;
     [SerializeField] private bool leftMouseThrows = true;
     [SerializeField, Min(0f)] private float throwSpeed = 9f;
 
@@ -62,19 +60,15 @@ public sealed class ItemCarrier : MonoBehaviour
 
     public Key InspectKey => inspectKey;
     public Key DropKey => dropKey;
-    public Key StoreKey => storeKey;
     public bool HoldToInspect => holdToInspect;
     public bool LeftMouseThrows => leftMouseThrows;
-
-    public bool CanStoreHeld =>
-        held != null && held.Data != null && held.Data.CanStoreWhenCarried && inventory != null;
+    public bool CanStoreHeld => false;
 
     private void Awake()
     {
         if (viewCamera == null) viewCamera = GetComponentInChildren<Camera>(true);
         if (viewCamera == null) viewCamera = Camera.main;
         if (interactor == null) interactor = GetComponent<PlayerInteractor>();
-        if (inventory == null) inventory = GetComponent<Inventory>();
 
         if (viewCamera == null)
             Debug.LogError("ItemCarrier: no camera found. Assign View Camera.", this);
@@ -118,7 +112,6 @@ public sealed class ItemCarrier : MonoBehaviour
         if (held == null || viewCamera == null)
             return;
 
-        // Another system (inventory) owns the player right now.
         if (inputLock.IsLocked && !inspecting)
             return;
 
@@ -143,10 +136,6 @@ public sealed class ItemCarrier : MonoBehaviour
             (keyboard != null && keyboard[dropKey].wasPressedThisFrame) ||
             (gamepad != null && gamepad.buttonEast.wasPressedThisFrame);
 
-        bool storePressed =
-            (keyboard != null && keyboard[storeKey].wasPressedThisFrame) ||
-            (gamepad != null && gamepad.leftShoulder.wasPressedThisFrame);
-
         bool throwPressed =
             leftMouseThrows &&
             ((mouse != null && mouse.leftButton.wasPressedThisFrame) ||
@@ -169,20 +158,12 @@ public sealed class ItemCarrier : MonoBehaviour
                 return;
             }
 
-            if (storePressed)
-            {
-                StoreHeld();
-                return;
-            }
-
             UpdateInspectRotation(mouse, gamepad);
             return;
         }
 
         if (holdToInspect ? inspectHeld : inspectPressed)
             SetInspecting(true);
-        else if (storePressed)
-            StoreHeld();
         else if (dropPressed)
             Release(Vector3.zero);
         else if (throwPressed)
@@ -207,7 +188,6 @@ public sealed class ItemCarrier : MonoBehaviour
         if (delta.sqrMagnitude < 0.00001f)
             return;
 
-        // Rotate around the camera's up and right axes so the drag always feels natural.
         Quaternion yaw = Quaternion.AngleAxis(-delta.x, Vector3.up);
         Quaternion pitch = Quaternion.AngleAxis(delta.y, Vector3.right);
         relativeRotation = yaw * pitch * relativeRotation;
@@ -260,7 +240,6 @@ public sealed class ItemCarrier : MonoBehaviour
 
         if (value)
         {
-            // Refused while airborne (would leave the player floating).
             if (!inputLock.Lock(this))
                 return;
         }
@@ -270,35 +249,6 @@ public sealed class ItemCarrier : MonoBehaviour
         }
 
         inspecting = value;
-    }
-
-    private void StoreHeld()
-    {
-        if (held == null)
-            return;
-
-        if (!CanStoreHeld)
-        {
-            Notifier.Show("Can't store this item");
-            return;
-        }
-
-        PickupItem item = held;
-        ItemData data = item.Data;
-
-        if (inventory.Add(data, 1) <= 0)
-        {
-            Notifier.Show("Inventory full");
-            GameAudio.Play(ProceduralSfx.Denied, transform.position, 0.6f, 0f, 0f);
-            return;
-        }
-
-        SetInspecting(false);
-        held = null;
-
-        Notifier.Show($"Stored {data.DisplayName}");
-        PlaySound(null, ProceduralSfx.Pickup, 1f);
-        Destroy(item.gameObject);
     }
 
     private void Release(Vector3 throwVelocity)

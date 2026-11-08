@@ -8,6 +8,7 @@ using UnityEngine;
 ///  - wrong house  : refuses with a message, nothing is paid
 ///  - correct house: pays the fixed reward ONCE, updates the remaining counter, and puts the
 ///                   package down so it can't be picked up or paid again.
+/// When it was the last package of the day, DailyRewards pays the completion bonus.
 /// </summary>
 public sealed class DeliveryPoint : MonoBehaviour, IInteractable
 {
@@ -75,26 +76,23 @@ public sealed class DeliveryPoint : MonoBehaviour, IInteractable
         // 3. Lock it FIRST so it can never be paid twice
         package.MarkDelivered();
 
-        // 4. Update the day's list
-        DailyBatchManager batch = DailyBatchManager.Instance;
-        bool wasAssigned = batch != null && batch.TryMarkDelivered(house.Id, package.Definition);
-
-        if (!wasAssigned)
-            Debug.Log($"DeliveryPoint: '{package.name}' was not part of today's batch (probably a hand-placed test package). Paid anyway.", this);
-
-        // 5. Pay once
+        // 4. Pay once
         int reward = package.Reward;
         if (EconomyManager.Instance != null)
             EconomyManager.Instance.Earn(reward, $"Delivery to {house.Address}");
         else
             Debug.LogWarning("DeliveryPoint: no EconomyManager in the scene, so nothing was paid.", this);
 
-        // 6. Feedback
+        // 5. Feedback (shown BEFORE the batch update, so the completion message comes after it)
         Notifier.Show($"Delivered to {house.Address}   +${reward}");
         GameAudio.Play(ProceduralSfx.Unlock, transform.position, 0.8f, 0.05f, 0.4f);
 
-        if (batch != null && batch.HasBatch && wasAssigned && batch.RemainingCount == 0)
-            Notifier.Show("All deliveries complete!");
+        // 6. Update the day's list (the last package makes DailyRewards pay the completion bonus)
+        DailyBatchManager batch = DailyBatchManager.Instance;
+        bool wasAssigned = batch != null && batch.TryMarkDelivered(house.Id, package.Definition);
+
+        if (!wasAssigned)
+            Debug.Log($"DeliveryPoint: '{package.name}' was not part of today's batch (probably a hand-placed test package). Paid anyway.", this);
 
         // 7. Put the package down
         PlacePackage(item);

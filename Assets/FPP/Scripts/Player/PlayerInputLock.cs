@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Lets several systems (inspect mode, inventory...) freeze the player safely.
+/// Lets several systems (inspect mode, day transition...) freeze the player safely.
 /// The FppPlayerController is only re-enabled when every system has released its lock.
 /// Added automatically at runtime, you never need to add it by hand.
 /// </summary>
@@ -29,35 +29,36 @@ public sealed class PlayerInputLock : MonoBehaviour
         controller = GetComponent<FppPlayerController>();
     }
 
+    /// <summary>
+    /// Freezes the player for "owner" (pass "this"). Returns false if airborne.
+    /// Call Unlock(this) when done.
+    /// </summary>
     public bool Lock(object owner)
     {
-        if (owners.Contains(owner))
-            return true;
-
-        if (owners.Count == 0 && !CanLock)
+        if (owner == null)
             return false;
 
-        owners.Add(owner);
-        Apply();
+        if (!CanLock)
+            return false;
+
+        if (owners.Add(owner) && owners.Count == 1)
+            Apply(true);
+
         return true;
     }
 
     public void Unlock(object owner)
     {
-        if (owners.Remove(owner))
-            Apply();
+        if (owner == null)
+            return;
+
+        if (owners.Remove(owner) && owners.Count == 0)
+            Apply(false);
     }
 
-    public bool IsLockedBy(object owner) => owners.Contains(owner);
-
-    private void Apply()
+    private void Apply(bool locked)
     {
         if (controller != null)
-            controller.enabled = owners.Count == 0;
-    }
-
-    private void OnDestroy()
-    {
-        owners.Clear();
+            controller.enabled = !locked;
     }
 }

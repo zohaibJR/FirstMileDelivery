@@ -1,0 +1,11 @@
+Packages
+ProjectSettings
+UserSettings
+Library
+Logs
+Temp
+obj
+.vscode
+.idea
+*.csproj
+*.sln

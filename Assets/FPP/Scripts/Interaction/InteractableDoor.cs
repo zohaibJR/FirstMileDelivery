@@ -1,10 +1,10 @@
-using NUnit.Framework.Interfaces;
 using UnityEngine;
 
 /// <summary>
 /// A door that swings open and closed. Put this on the door's pivot object (the hinge)
 /// and give the door mesh a Collider.
-/// Set "Locked" and assign a "Required Key" (an ItemData) for a key and lock puzzle.
+/// Set "Locked" and assign a "Required Key" (an ItemData). The player unlocks it by
+/// interacting while carrying the key in hands.
 /// </summary>
 public class InteractableDoor : MonoBehaviour, IInteractable
 {
@@ -14,7 +14,7 @@ public class InteractableDoor : MonoBehaviour, IInteractable
 
     [Header("Lock")]
     [SerializeField] private bool locked = false;
-    [Tooltip("Item the player needs in the inventory to unlock. Leave empty for a door that can't be unlocked by a key.")]
+    [Tooltip("Item the player needs to hold in hands to unlock. Leave empty for a door that can't be unlocked by a key.")]
     [SerializeField] private ItemData requiredKey;
     [SerializeField] private bool consumeKey = false;
 
@@ -52,7 +52,7 @@ public class InteractableDoor : MonoBehaviour, IInteractable
         {
             if (!TryUnlock(interactor))
             {
-                Notifier.Show(requiredKey != null ? $"Locked. You need: {requiredKey.DisplayName}" : "It's locked.");
+                Notifier.Show(requiredKey != null ? $"Locked. You need to hold: {requiredKey.DisplayName}" : "It's locked.");
                 GameAudio.Play(ProceduralSfx.Denied, transform.position, 0.7f);
                 return;
             }
@@ -67,12 +67,16 @@ public class InteractableDoor : MonoBehaviour, IInteractable
         if (requiredKey == null)
             return false;
 
-        Inventory inventory = interactor.GetComponent<Inventory>();
-        if (inventory == null || !inventory.Has(requiredKey))
+        ItemCarrier carrier = interactor.GetComponent<ItemCarrier>();
+        if (carrier == null || !carrier.IsHolding || carrier.HeldItem == null || carrier.HeldItem.Data != requiredKey)
             return false;
 
         if (consumeKey)
-            inventory.Remove(requiredKey, 1);
+        {
+            PickupItem keyItem = carrier.DetachHeld();
+            if (keyItem != null)
+                Destroy(keyItem.gameObject);
+        }
 
         locked = false;
         Notifier.Show("Unlocked");

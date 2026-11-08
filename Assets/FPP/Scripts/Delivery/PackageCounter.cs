@@ -5,13 +5,21 @@ using UnityEngine;
 
 /// <summary>
 /// The warehouse pickup counter. Put this on the counter object (needs a Collider).
+/// - Only works during the opening hours (needs a TimeManager in the scene).
 /// - Shows today's assigned deliveries on an optional board (3D TextMeshPro).
 /// - Looking at it and pressing E collects the whole batch: every package is spawned
 ///   on the counter, ready to be picked up and delivered.
+/// - When a new day starts, packages nobody delivered are returned to the warehouse.
 /// </summary>
 public sealed class PackageCounter : MonoBehaviour, IInteractable
 {
     [SerializeField] private DailyBatchManager manager;
+
+    [Header("Opening Hours")]
+    [Tooltip("Off: the counter is always open.")]
+    [SerializeField] private bool useOpeningHours = true;
+    [SerializeField, Range(0f, 24f)] private float openHour = 7f;
+    [SerializeField, Range(0f, 24f)] private float closeHour = 18f;
 
     [Header("Spawning")]
     [Tooltip("Empty objects on the counter top. Packages appear here. If empty, packages appear in front of the counter.")]
@@ -24,8 +32,13 @@ public sealed class PackageCounter : MonoBehaviour, IInteractable
     [SerializeField] private TMP_Text boardText;
 
     private readonly List<Package> spawned = new List<Package>();
+    private TimeManager time;
+    private ItemCarrier lastCarrier;
 
     public IReadOnlyList<Package> SpawnedPackages => spawned;
+
+    /// <summary>True while the warehouse is open (always true without a TimeManager).</summary>
+    public bool IsOpen => !useOpeningHours || time == null || time.IsBetween(openHour, closeHour);
 
     public string InteractionPrompt
     {
@@ -33,6 +46,10 @@ public sealed class PackageCounter : MonoBehaviour, IInteractable
         {
             if (manager == null)
                 return "No packages";
+
+            if (!IsOpen)
+                return $"Warehouse closed (opens {FormatHour(openHour)})";
+
             return $"Collect today's packages ({manager.TotalCount})";
         }
     }
@@ -42,10 +59,18 @@ public sealed class PackageCounter : MonoBehaviour, IInteractable
         if (manager == null)
             manager = DailyBatchManager.Instance;
 
+        time = TimeManager.Instance;
+
         if (manager != null)
             manager.BatchChanged += RefreshBoard;
         else
             Debug.LogWarning("PackageCounter: no DailyBatchManager found in the scene.", this);
+
+        if (time != null)
+        {
+            time.HourChanged += OnHourChanged;
+            time.DayStarted += OnDayStarted;
+        }
 
         RefreshBoard();
     }
@@ -54,6 +79,12 @@ public sealed class PackageCounter : MonoBehaviour, IInteractable
     {
         if (manager != null)
             manager.BatchChanged -= RefreshBoard;
+
+        if (time != null)
+        {
+            time.HourChanged -= OnHourChanged;
+            time.DayStarted -= OnDayStarted;
+        }
     }
 
     public bool CanInteract(PlayerInteractor interactor)
@@ -65,6 +96,15 @@ public sealed class PackageCounter : MonoBehaviour, IInteractable
     {
         if (!CanInteract(interactor))
             return;
+
+        if (!IsOpen)
+        {
+            Notifier.Show($"The warehouse is closed. It opens at {FormatHour(openHour)}");
+            GameAudio.Play(ProceduralSfx.Denied, transform.position, 0.7f);
+            return;
+        }
+
+        lastCarrier = interactor.GetComponent<ItemCarrier>();
 
         spawned.Clear();
         IReadOnlyList<PackageAssignment> assignments = manager.Assignments;
@@ -101,9 +141,10 @@ public sealed class PackageCounter : MonoBehaviour, IInteractable
             return;
         }
 
-        manager.MarkCollected();
+        // Message first, then MarkCollected (which makes DailyRewards pay the salary and show its message).
         Notifier.Show($"Collected {spawned.Count} packages");
         GameAudio.Play(ProceduralSfx.Pickup, transform.position, 0.8f, 0.05f, 0.3f);
+        manager.MarkCollected();
     }
 
     private Vector3 GetSpawnPosition(int index)
@@ -124,6 +165,45 @@ public sealed class PackageCounter : MonoBehaviour, IInteractable
             + Vector3.up * (1.2f + row * 0.5f);
     }
 
+    private void OnHourChanged(int hour)
+    {
+        RefreshBoard();
+    }
+
+    private void OnDayStarted(int day)
+    {
+        ReturnLeftovers();
+    }
+
+    /// <summary>New morning: packages that were never delivered go back to the warehouse.</summary>
+    private void ReturnLeftovers()
+    {
+        int returned = 0;
+
+        foreach (Package package in spawned)
+        {
+            if (package == null || package.IsDelivered)
+                continue;
+
+            PickupItem item = package.GetComponent<PickupItem>();
+            if (item != null && item.IsHeld && lastCarrier != null)
+                lastCarrier.DetachHeld();
+
+            Destroy(package.gameObject);
+            returned++;
+        }
+
+        spawned.Clear();
+
+        if (returned > 0)
+            Notifier.Show("Undelivered packages were returned to the warehouse");
+    }
+
+    private string FormatHour(float hour)
+    {
+        return time != null ? time.Format(hour) : $"{hour:0}:00";
+    }
+
     private void RefreshBoard()
     {
         if (boardText == null)
@@ -137,6 +217,15 @@ public sealed class PackageCounter : MonoBehaviour, IInteractable
 
         StringBuilder sb = new StringBuilder();
         sb.AppendLine($"<b>DAY {manager.Day} DELIVERIES</b>");
+
+        if (useOpeningHours)
+        {
+            string state = IsOpen
+                ? "<color=#7CFC9A>OPEN</color>"
+                : "<color=#FF8A80>CLOSED</color>";
+            sb.AppendLine($"{FormatHour(openHour)} - {FormatHour(closeHour)}   {state}");
+        }
+
         sb.AppendLine(manager.IsCollected
             ? "<color=#7CFC9A>Collected</color>"
             : "<color=#FFD54A>Ready to collect</color>");

@@ -2,7 +2,7 @@ using UnityEngine;
 
 /// <summary>
 /// Put this on any pickup prefab (needs a Collider and a Rigidbody).
-/// Optionally assign an ItemData to give it a name, description, weight and inventory behaviour.
+/// Optionally assign an ItemData to give it a name, description, and weight.
 /// Without ItemData it simply uses the name below and is carried in front of the camera.
 /// </summary>
 [RequireComponent(typeof(Rigidbody))]
@@ -22,9 +22,11 @@ public class PickupItem : MonoBehaviour, IInteractable
     private Rigidbody body;
     private Collider[] colliders;
     private float nextImpactTime;
+    private bool pickupEnabled = true;
 
     public bool IsHeld { get; private set; }
     public ItemData Data => data;
+
     // Runtime override (used by Package so each package can show its own name and destination).
     private bool hasOverride;
     private string overrideName;
@@ -43,17 +45,14 @@ public class PickupItem : MonoBehaviour, IInteractable
         overrideDescription = newDescription;
         overrideWeight = newWeight;
     }
-    public bool IsStoreOnly => data != null && data.Mode == PickupMode.Store;
 
-    public string InteractionPrompt => IsStoreOnly ? $"Take {DisplayName}" : $"Pick up {DisplayName}";
+    public string InteractionPrompt => $"Pick up {DisplayName}";
 
     private void Awake()
     {
         body = GetComponent<Rigidbody>();
         colliders = GetComponentsInChildren<Collider>(true);
     }
-
-    private bool pickupEnabled = true;
 
     /// <summary>Turn off to make this item un-pickable (for example after a package is delivered).</summary>
     public void SetPickupEnabled(bool enabledForPickup)
@@ -66,28 +65,12 @@ public class PickupItem : MonoBehaviour, IInteractable
         if (IsHeld || !pickupEnabled)
             return false;
 
-        // Small store-only items can always be taken. Carried items need free hands.
-        if (IsStoreOnly)
-            return true;
-
         ItemCarrier carrier = interactor.GetComponent<ItemCarrier>();
         return carrier == null || !carrier.IsHolding;
     }
 
     public void Interact(PlayerInteractor interactor)
     {
-        if (IsStoreOnly)
-        {
-            Inventory inventory = interactor.GetComponent<Inventory>();
-            if (inventory != null)
-            {
-                TryStore(inventory);
-                return;
-            }
-
-            Debug.LogWarning("PickupItem: store-only item but the player has no Inventory. Carrying it instead.", this);
-        }
-
         ItemCarrier carrier = interactor.GetComponent<ItemCarrier>();
         if (carrier == null)
         {
@@ -96,25 +79,6 @@ public class PickupItem : MonoBehaviour, IInteractable
         }
 
         carrier.Pick(this);
-    }
-
-    /// <summary>Moves this item into the inventory and removes it from the world.</summary>
-    public bool TryStore(Inventory inventory)
-    {
-        if (data == null || inventory == null)
-            return false;
-
-        if (inventory.Add(data, 1) <= 0)
-        {
-            Notifier.Show("Can't carry any more");
-            GameAudio.Play(ProceduralSfx.Denied, transform.position, 0.6f, 0f, 0.3f);
-            return false;
-        }
-
-        Notifier.Show($"Picked up {data.DisplayName}");
-        GameAudio.Play(ProceduralSfx.Pickup, transform.position, 0.8f, 0.05f, 0.3f);
-        Destroy(gameObject);
-        return true;
     }
 
     /// <summary>Called by ItemCarrier. Turns off physics so the item can follow the camera.</summary>

@@ -1,19 +1,45 @@
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// The on-screen HUD (built from code, no Canvas setup needed). Put this on the FPP Player.
+/// The on-screen HUD for interactions. Put this on the FPP Player.
 /// Shows: crosshair, interaction prompt with the right button for keyboard or gamepad,
-/// hold-to-interact ring, carry hints, toast messages, and the inspect screen
-/// (dimmed edges plus a name and description panel).
-/// Requires TextMeshPro (Window > TextMeshPro > Import TMP Essential Resources, if asked).
+/// hold-to-interact ring, carry hints, toast messages, and the inspect screen.
+/// Supports drag-and-drop UI references from your Canvas.
 /// </summary>
 public sealed class InteractionHud : MonoBehaviour
 {
     [Header("References (auto-found if empty)")]
     [SerializeField] private PlayerInteractor interactor;
     [SerializeField] private ItemCarrier carrier;
+
+    [Header("UI References (Drag & Drop from Canvas)")]
+    [Tooltip("Parent panel of the Interaction HUD (optional).")]
+    [SerializeField] private GameObject panelRoot;
+    [Tooltip("Image for the center crosshair dot.")]
+    [SerializeField] private Image crosshair;
+    [Tooltip("Image for the hold-to-interact background ring.")]
+    [SerializeField] private Image ringBack;
+    [Tooltip("Image for the hold-to-interact radial fill ring.")]
+    [SerializeField] private Image ringFill;
+    [Tooltip("TextMeshProUGUI for the interaction prompt (e.g. [E] Open).")]
+    [SerializeField] private TextMeshProUGUI prompt;
+    [Tooltip("TextMeshProUGUI for carry control hints (bottom left).")]
+    [SerializeField] private TextMeshProUGUI hints;
+    [Tooltip("TextMeshProUGUI for queued toast messages (top center).")]
+    [SerializeField] private TextMeshProUGUI toast;
+
+    [Header("Inspect Screen References (Optional)")]
+    [Tooltip("CanvasGroup on the Inspect panel (faded in when inspecting).")]
+    [SerializeField] private CanvasGroup inspectGroup;
+    [Tooltip("TextMeshProUGUI for the inspected item's name.")]
+    [SerializeField] private TextMeshProUGUI inspectTitle;
+    [Tooltip("TextMeshProUGUI for the inspected item's description and weight.")]
+    [SerializeField] private TextMeshProUGUI inspectBody;
+    [Tooltip("TextMeshProUGUI for inspect controls hint.")]
+    [SerializeField] private TextMeshProUGUI inspectFooter;
 
     [Header("Font")]
     [Tooltip("TMP Font Asset created from your .ttf. Empty = TextMeshPro default font.")]
@@ -23,12 +49,13 @@ public sealed class InteractionHud : MonoBehaviour
     [SerializeField] private Color crosshairColor = new Color(1f, 1f, 1f, 0.8f);
     [SerializeField] private Color targetColor = new Color(1f, 0.84f, 0.3f, 1f);
     [SerializeField, Min(0.5f)] private float toastDuration = 2.5f;
+    [Tooltip("When several messages arrive together, each one is shown for at least this long.")]
+    [SerializeField, Min(0.3f)] private float minToastTime = 1.2f;
 
-    private Image crosshair, ringBack, ringFill;
-    private TextMeshProUGUI prompt, hints, toast, inspectTitle, inspectBody, inspectFooter;
-    private CanvasGroup inspectGroup;
     private PickupItem shownItem;
     private float toastTimer;
+    private float toastShownFor;
+    private readonly Queue<string> toastQueue = new Queue<string>();
 
     private void Awake()
     {
@@ -37,7 +64,15 @@ public sealed class InteractionHud : MonoBehaviour
         if (font != null)
             UIFactory.DefaultFont = font;
 
-        BuildUi();
+        if (crosshair == null || prompt == null)
+        {
+            // Fallback: build procedurally if references are not assigned in Inspector.
+            BuildUi();
+        }
+        else
+        {
+            InitializeAssignedUi();
+        }
     }
 
     private void OnEnable()
@@ -48,6 +83,39 @@ public sealed class InteractionHud : MonoBehaviour
     private void OnDisable()
     {
         Notifier.Message -= OnMessage;
+    }
+
+    private void InitializeAssignedUi()
+    {
+        if (crosshair != null && crosshair.sprite == null)
+            crosshair.sprite = UIFactory.DotSprite;
+
+        if (ringBack != null && ringBack.sprite == null)
+            ringBack.sprite = UIFactory.RingSprite;
+
+        if (ringFill != null)
+        {
+            if (ringFill.sprite == null)
+                ringFill.sprite = UIFactory.RingSprite;
+
+            ringFill.type = Image.Type.Filled;
+            ringFill.fillMethod = Image.FillMethod.Radial360;
+            ringFill.fillOrigin = (int)Image.Origin360.Top;
+            ringFill.fillClockwise = true;
+            ringFill.fillAmount = 0f;
+        }
+
+        if (inspectGroup != null)
+        {
+            inspectGroup.alpha = 0f;
+            inspectGroup.interactable = false;
+            inspectGroup.blocksRaycasts = false;
+        }
+
+        SetRingVisible(false);
+        if (prompt != null) prompt.text = string.Empty;
+        if (hints != null) hints.text = string.Empty;
+        if (toast != null) toast.text = string.Empty;
     }
 
     private void BuildUi()
@@ -131,30 +199,39 @@ public sealed class InteractionHud : MonoBehaviour
         IInteractable target = interactor != null ? interactor.CurrentTarget : null;
         bool showTarget = target != null && cursorLocked && !inspecting;
 
-        crosshair.enabled = cursorLocked && !inspecting;
-        crosshair.color = showTarget ? targetColor : crosshairColor;
-        crosshair.rectTransform.sizeDelta = Vector2.one * (showTarget ? 10f : 6f);
-
-        if (showTarget)
+        if (crosshair != null)
         {
-            string badge = InputGlyphs.Pick(interactor.InteractKey, "X");
-            prompt.text = interactor.TargetIsHold
-                ? $"Hold {badge}  {target.InteractionPrompt}"
-                : $"{badge}  {target.InteractionPrompt}";
-        }
-        else
-        {
-            prompt.text = string.Empty;
+            crosshair.enabled = cursorLocked && !inspecting;
+            crosshair.color = showTarget ? targetColor : crosshairColor;
+            crosshair.rectTransform.sizeDelta = Vector2.one * (showTarget ? 10f : 6f);
         }
 
-        bool showRing = showTarget && interactor.TargetIsHold;
+        if (prompt != null)
+        {
+            if (showTarget && interactor != null)
+            {
+                string badge = InputGlyphs.Pick(interactor.InteractKey, "X");
+                prompt.text = interactor.TargetIsHold
+                    ? $"Hold {badge}  {target.InteractionPrompt}"
+                    : $"{badge}  {target.InteractionPrompt}";
+            }
+            else
+            {
+                prompt.text = string.Empty;
+            }
+        }
+
+        bool showRing = showTarget && interactor != null && interactor.TargetIsHold;
         SetRingVisible(showRing);
-        if (showRing)
+        if (showRing && ringFill != null && interactor != null)
             ringFill.fillAmount = interactor.HoldProgress;
     }
 
     private void UpdateHints(bool inspecting)
     {
+        if (hints == null)
+            return;
+
         if (carrier == null || !carrier.IsHolding || inspecting)
         {
             hints.text = string.Empty;
@@ -172,18 +249,18 @@ public sealed class InteractionHud : MonoBehaviour
         if (carrier.LeftMouseThrows)
             text += $"   {InputGlyphs.Pick("LMB", "RB")} Throw";
 
-        if (carrier.CanStoreHeld)
-            text += $"   {InputGlyphs.Pick(carrier.StoreKey, "LB")} Store";
-
         hints.text = text;
     }
 
     private void UpdateInspect(bool inspecting)
     {
+        if (inspectGroup == null)
+            return;
+
         float targetAlpha = inspecting ? 1f : 0f;
         inspectGroup.alpha = Mathf.MoveTowards(inspectGroup.alpha, targetAlpha, Time.unscaledDeltaTime * 6f);
 
-        if (!inspecting || carrier.HeldItem == null)
+        if (!inspecting || carrier == null || carrier.HeldItem == null)
         {
             shownItem = null;
             return;
@@ -193,12 +270,13 @@ public sealed class InteractionHud : MonoBehaviour
         if (item != shownItem)
         {
             shownItem = item;
-            inspectTitle.text = item.DisplayName;
+            if (inspectTitle != null) inspectTitle.text = item.DisplayName;
 
             string body = string.IsNullOrWhiteSpace(item.Description) ? string.Empty : item.Description;
             if (item.Weight > 0f)
                 body += (body.Length > 0 ? "\n\n" : string.Empty) + $"<color=#9AA7B0>Weight: {item.Weight:0.##}</color>";
-            inspectBody.text = body;
+
+            if (inspectBody != null) inspectBody.text = body;
         }
 
         string rotate = InputGlyphs.UsingGamepad ? "Right stick: Rotate" : "Mouse: Rotate   Scroll: Zoom";
@@ -207,22 +285,33 @@ public sealed class InteractionHud : MonoBehaviour
             : $"{InputGlyphs.Pick(carrier.InspectKey, "Y")} Back";
 
         string footer = $"{rotate}   {back}   {InputGlyphs.Pick(carrier.DropKey, "B")} Drop";
-        if (carrier.CanStoreHeld)
-            footer += $"   {InputGlyphs.Pick(carrier.StoreKey, "LB")} Store";
 
-        inspectFooter.text = footer;
+        if (inspectFooter != null) inspectFooter.text = footer;
     }
 
     private void UpdateToast()
     {
+        if (toast == null)
+            return;
+
         if (toastTimer <= 0f)
         {
-            if (toast.text.Length > 0)
+            if (toastQueue.Count > 0)
+                ShowToast(toastQueue.Dequeue());
+            else if (toast.text.Length > 0)
                 toast.text = string.Empty;
             return;
         }
 
         toastTimer -= Time.unscaledDeltaTime;
+        toastShownFor += Time.unscaledDeltaTime;
+
+        if (toastQueue.Count > 0 && toastShownFor >= minToastTime)
+        {
+            ShowToast(toastQueue.Dequeue());
+            return;
+        }
+
         toast.alpha = Mathf.Clamp01(toastTimer / 0.5f);
     }
 
@@ -231,14 +320,32 @@ public sealed class InteractionHud : MonoBehaviour
         if (toast == null)
             return;
 
+        if (toastTimer <= 0f)
+        {
+            ShowToast(message);
+            return;
+        }
+
+        if (toastQueue.Count >= 4)
+            toastQueue.Dequeue();
+
+        toastQueue.Enqueue(message);
+    }
+
+    private void ShowToast(string message)
+    {
+        if (toast == null)
+            return;
+
         toast.text = message;
         toast.alpha = 1f;
         toastTimer = toastDuration;
+        toastShownFor = 0f;
     }
 
     private void SetRingVisible(bool visible)
     {
-        ringBack.enabled = visible;
-        ringFill.enabled = visible;
+        if (ringBack != null) ringBack.enabled = visible;
+        if (ringFill != null) ringFill.enabled = visible;
     }
 }

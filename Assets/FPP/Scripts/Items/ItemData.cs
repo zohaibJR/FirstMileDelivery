@@ -2,10 +2,8 @@ using UnityEngine;
 
 public enum PickupMode
 {
-    /// <summary>Held in front of the camera (big objects like crates).</summary>
-    Carry,
-    /// <summary>Goes straight into the inventory (keys, notes, small items).</summary>
-    Store
+    /// <summary>Held in front of the camera (packages, crates, keys, tools).</summary>
+    Carry
 }
 
 /// <summary>
@@ -21,13 +19,9 @@ public class ItemData : ScriptableObject
 
     [Header("Rules")]
     [SerializeField, Min(0f)] private float weight = 0.5f;
-    [SerializeField, Min(1)] private int maxStack = 10;
-    [SerializeField] private PickupMode pickupMode = PickupMode.Carry;
-    [Tooltip("Carry items only: allows pressing the Store key while holding it.")]
-    [SerializeField] private bool canStoreWhenCarried = true;
 
     [Header("World")]
-    [Tooltip("Prefab spawned when the item is dropped from the inventory. It needs a PickupItem.")]
+    [Tooltip("Prefab spawned when the item is placed or dropped in the world. Needs a PickupItem.")]
     [SerializeField] private GameObject worldPrefab;
 
     public string Id => string.IsNullOrEmpty(itemId) ? name : itemId;
@@ -35,8 +29,5 @@ public class ItemData : ScriptableObject
     public string Description => description;
     public Sprite Icon => icon;
     public float Weight => weight;
-    public int MaxStack => maxStack;
-    public PickupMode Mode => pickupMode;
-    public bool CanStoreWhenCarried => canStoreWhenCarried;
     public GameObject WorldPrefab => worldPrefab;
 }
