@@ -55,12 +55,14 @@ FPP Scene
 │   └─ View Pivot           (layer: Ignore Raycast; crouch moves this)
 │       └─ Main Camera      (tag: MainCamera; HeadBob moves this)
 ├─ Ground                   (collider)
-├─ Manager                  (DailyBatchManager, EconomyManager, TimeManager, DayNightCycle, DailyRewards)
+├─ Manager                  (DailyBatchManager, EconomyManager, TimeManager, DayNightCycle, DailyRewards, BillsManager)
 ├─ PackageCounter           (+ Spawn Point 1..3 children, Board TMP text)
 ├─ House_01..House_06       (HouseId + DeliveryPoint, optional PlacePoint child on porch)
-├─ Bed                      (grey-box cube, layer Default, Box Collider + BedInteractable)
+├─ Home                     (grey-box room: Floor, 5 wall cubes with a 2-unit doorway, Roof)
+│   ├─ Bed                  (grey-box cube, layer Default, Box Collider + BedInteractable)
+│   └─ BillsDesk            (cube, Box Collider + BillsDesk)
 ├─ Main Canvas              (Screen Space - Overlay, CanvasScaler 2560x1440 Match 0.5)
-│   ├─ Status_Panel         (MoneyText, MoneyChangeText, DayText, DeliveriesText, EnergyBar_Fill, EnergyText)
+│   ├─ Status_Panel         (MoneyText, MoneyChangeText, DayText, DeliveriesText, BillsText, EnergyBar_Fill, EnergyText)
 │   ├─ Interaction_Panel    (Crosshair, RingBack, RingFill, PromptText, ToastText, HintsText, Inspect_SubPanel)
 │   └─ DayTransition_Panel  (BlackScreen, TextContainer: DayTitleText, DaySubtitleText)
 └─ EventSystem
@@ -86,12 +88,12 @@ Move files by **dragging inside the Unity Project window** (never in Explorer/Fi
 | `UI/` | `UIFactory.cs`, `InteractionHud.cs`, `StatusHud.cs`, `DayTransition.cs` |
 | `Core/` | `Notifier.cs`, `InputGlyphs.cs`, `GameAudio.cs` (also contains `ProceduralSfx`) |
 | `Energy/` | `PlayerEnergy.cs`, `BedInteractable.cs` |
+| `Bills/` | `BillsManager.cs`, `BillsDesk.cs` |
 
 **Planned folders (create when the system is built):**
 
 | Folder (under `Assets/FPP/Scripts/`) | Future scripts |
 |---|---|
-| `Bills/` | `BillsManager`, rent, electricity, debt |
 | `Vehicles/` | rental office, vehicle controller, enter/exit, parking |
 | `Phone/` | smartphone UI, map, markers |
 | `Save/` | save/load system |
@@ -146,7 +148,7 @@ Move files by **dragging inside the Unity Project window** (never in Explorer/Fi
 All UI is authored under **`Main Canvas`** with serialized drag-and-drop references (fallback to `UIFactory` if unassigned).
 - **`UIFactory`**: static helpers; `DefaultFont`.
 - **`InteractionHud`**: crosshair, prompt, hold ring, hints, queued toasts, inspect card.
-- **`StatusHud`**: money counter, floating `+$`/`-$`, `Day N   7:00 AM`, `Deliveries left`, energy bar (`energyBarFill`, `energyText`, `energyGradient`).
+- **`StatusHud`**: money counter, floating `+$`/`-$`, `Day N   7:00 AM`, `Deliveries left`, energy bar (`energyBarFill`, `energyText`, `energyGradient`), bills line (`billsText`: next bill day, amount, red debt line).
 - **`DayTransition`**: black fade + "Day N" + reason, freezes the player and pauses the clock. Timing 1 s / 2 s / 1.2 s.
 
 ### 6.8 Core (`Core/`)
@@ -156,11 +158,15 @@ All UI is authored under **`Main Canvas`** with serialized drag-and-drop referen
 - **`PlayerEnergy`**: singleton on `FPP Player`. `Energy` (0–100), `EnergyNormalized`. Drain per game-hour (`energyDrainPerHour` 8) + carry drain by held weight (`carryDrainPerKgPerHour`) + sprint multiplier (`sprintDrainMultiplier`). At ≤ 30%: warning toast and sprinting disabled. At 0: collapse, `TimeManager.RequestNextDay("You collapsed from exhaustion")`, wake with `passOutWakeEnergy` 60. Full restore on a planned sleep via `MarkPlannedSleep()`. Debug: Set Energy to 5% / 0%.
 - **`BedInteractable`**: on the `Bed`. Prompt shown always; sleeping allowed after `earliestSleepHour` (18) or when energy ≤ 30% (`allowSleepIfLowEnergy`). Interact → `MarkPlannedSleep()` → `TimeManager.RequestNextDay("Good night...")`. Before that it refuses with "too early to sleep".
 
+### 6.9b Bills (`Bills/`) — CONFIRMED WORKING
+- **`BillsManager`**: singleton on `Manager`. `firstBillDay` 8, `billingIntervalDays` 7, `weeklyRent` 70, `weeklyElectricity` 15. Subscribes to `TimeManager.DayStarted`; on a billing day it first tries to pay old debt, then pays Rent and Electricity through `EconomyManager.TrySpend`. Anything unaffordable is added to `Debt` (red toast). Public: `Debt`, `WeeklyRent`, `WeeklyElectricity`, `WeeklyTotal`, `NextBillDay`, `DaysUntilNextBill`, `ChargeBills()`, `PayDebt()` (pays what the player can afford, returns amount), `SetDebt()` (for saves). Events `DebtChanged(int)`, `BillsProcessed`. Debug: Charge Bills Now, Add $50 Debt. **Debt lives here, not in `EconomyManager`.** Vehicle rental (Milestone 08) must add its weekly fee here.
+- **`BillsDesk`**: `IInteractable` on the desk at home. Prompt shows debt or the next bill day; E pays as much debt as the player can afford.
+
 ### 6.10 Components on FPP Player
 `CharacterController`, `FppPlayerController`, `PlayerInteractor`, `ItemCarrier`, `InteractionHud`, `HeadBob`, `FootstepPlayer`, `StatusHud`, `DayTransition`, `PlayerEnergy` (+ `PlayerInputLock` auto-added).
 
 ### 6.11 Components on Manager
-`EconomyManager`, `DailyBatchManager`, `TimeManager`, `DailyRewards`, `DayNightCycle`.
+`EconomyManager`, `DailyBatchManager`, `TimeManager`, `DailyRewards`, `DayNightCycle`, `BillsManager`.
 
 ---
 
@@ -189,11 +195,13 @@ All UI is authored under **`Main Canvas`** with serialized drag-and-drop referen
 - `DailyBatchManager` needs `HouseId` objects in the scene before `Start`.
 - Delivered packages stay on the porch 120 s; undelivered ones are destroyed at the next morning.
 - **Confirmed working in Unity (user tests through 2026-11-08):** movement, interaction, carry/inspect/drop, warehouse counter + opening hours, delivery loop, wallet, salary, bonus, clock, day/night, day transition, authored UI panels, energy drain, carry/sprint drain, low-energy sprint lock, bed (too early refusal, sleep after 6 PM, wake at 7:00 AM with full energy), collapse (wake with 60%).
-- The Bed is a grey-box cube; the real home interior comes with Milestone 07/10.
+- Weekly bills (Day 8, 15, 22...), rent/electricity auto-payment, debt, HUD bills line and the BillsDesk were tested and confirmed (2026-11-08).
+- The home is a grey-box room; the real interior and house art come with Milestone 10.
+- Debt has no extra penalty yet (no interest, no eviction). Possible later polish in Milestone 11.
 
 ## 9. Proposed Architecture for Upcoming Systems
 
-- **`BillsManager` (Milestone 07, `Bills/`):** weekly cycle driven by `TimeManager.DayStarted`; rent, electricity, vehicle rental; auto-pay through `EconomyManager.TrySpend`; unpaid amounts become debt (needs a debt value in `EconomyManager` or in `BillsManager`). Suggested first values (confirm): rent $70 and electricity $15 per week, charged on every 7th morning.
+- **Vehicle rental (Milestone 08, `Vehicles/`):** rental office, deposit through `EconomyManager.TrySpend`, weekly rental fee charged by `BillsManager` (add a `vehicleRental` amount that is 0 until a vehicle is rented), one drivable vehicle, enter/exit, parking, package loading.
 - **`Smartphone` (Milestone 09):** deliveries list, map, wallet, bills view.
 - **Save system (Milestone 12):** managers expose state through serializable data classes.
 

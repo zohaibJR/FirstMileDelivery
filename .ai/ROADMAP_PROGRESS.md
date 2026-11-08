@@ -22,16 +22,17 @@
 
 ## CURRENT STEP
 
-**Milestone 07 — Home and Weekly Bills. Step 7.1: Build the player's rented home (grey-box).**
+**Milestone 08 — Rental Vehicle System. Step 8.1: Create the vehicle rental office (grey-box).**
 
-Milestone 06 (Energy and Sleep) is complete and confirmed.
+Milestones 06 (Energy and Sleep) and 07 (Home and Weekly Bills) are complete and confirmed.
 
-Plan for Milestone 07 (one Unity step at a time):
-1. Build a grey-box home (floor, walls, door gap) and move the Bed inside. *(7.1)*
-2. Decide bill amounts and the billing day (see Decisions Log, proposed values).
-3. Write `BillsManager` (`Bills/`) and add it to `Manager`. *(7.2–7.6)*
-4. Debt, notification UI and debt display on `StatusHud`. *(7.7–7.9)*
-5. Test paying and not paying a bill. *(7.10)*
+Plan for Milestone 08 (one Unity step at a time):
+1. Build a grey-box rental office with a counter. *(8.1)*
+2. Write `RentalOffice` interaction, rental agreement, deposit and weekly fee (hooks into `BillsManager`). *(8.2–8.5, 8.10)*
+3. Add one drivable vehicle (simple car controller). *(8.6)*
+4. Enter and exit the vehicle, parking. *(8.7, 8.8)*
+5. Load and unload packages. *(8.9)*
+6. Test a full vehicle delivery route. *(8.11)*
 
 ---
 
@@ -44,9 +45,9 @@ Plan for Milestone 07 (one Unity step at a time):
 | 03 Package Carrying and Delivery | 4–6 days | 10/10 |
 | 04 Economy and Work Rewards | 2–4 days | 8/8 |
 | 05 Time and Day/Night Cycle | 3–5 days | 9/9 |
-| 06 Energy and Sleep | 3–4 days | 10/10 *(6.6 bed is a grey-box; real bedroom in 7.1)* |
-| 07 Home and Weekly Bills | 3–5 days | 0/10 *(current)* |
-| 08 Rental Vehicle System | 5–8 days | 0/11 |
+| 06 Energy and Sleep | 3–4 days | 10/10 |
+| 07 Home and Weekly Bills | 3–5 days | 10/10 |
+| 08 Rental Vehicle System | 5–8 days | 0/11 *(current)* |
 | 09 Smartphone and Navigation | 3–5 days | 0/9 |
 | 10 Town and Environment | 2–4 weeks | 0/10 |
 | 11 Gameplay Polish and Progression | 2–4 weeks | 0/10 |
@@ -133,18 +134,20 @@ Plan for Milestone 07 (one Unity step at a time):
 ## Milestone 07 — Home and Weekly Bills (3–5 days)
 **Done when:** weekly rent and electricity are charged automatically, unpaid amounts become debt, and the player is notified.
 
-- [ ] 7.1 Create player's rented house
-- [ ] 7.2 Create weekly billing calendar
-- [ ] 7.3 Implement house rent
-- [ ] 7.4 Implement electricity bills
-- [ ] 7.5 Create `BillsManager`
-- [ ] 7.6 Implement weekly automatic payment
-- [ ] 7.7 Implement outstanding debt
-- [ ] 7.8 Create bill notification UI
-- [ ] 7.9 Create debt display
-- [ ] 7.10 Test successful and unsuccessful bill payments
+- [x] 7.1 Create player's rented house *(grey-box room with the Bed and BillsDesk)*
+- [x] 7.2 Create weekly billing calendar *(Day 8, 15, 22...)*
+- [x] 7.3 Implement house rent *($70)*
+- [x] 7.4 Implement electricity bills *($15)*
+- [x] 7.5 Create `BillsManager`
+- [x] 7.6 Implement weekly automatic payment
+- [x] 7.7 Implement outstanding debt
+- [x] 7.8 Create bill notification UI *(toasts + HUD bills line)*
+- [x] 7.9 Create debt display *(red debt line on the HUD, BillsDesk prompt)*
+- [x] 7.10 Test successful and unsuccessful bill payments
 
 ## Milestone 08 — Rental Vehicle System (5–8 days)
+**Done when:** the player can rent a vehicle, drive it, park it, load/unload packages, and pays weekly rental through the bills system.
+
 - [ ] 8.1 Create vehicle rental office
 - [ ] 8.2 Create rental interaction
 - [ ] 8.3 Implement rental agreement
@@ -217,6 +220,7 @@ Plan for Milestone 07 (one Unity step at a time):
 | 2026-11-06 | Wrote `PackageDefinition`, `Package`, `HouseId`, `DailyBatchManager`, `PackageCounter`, `DeliveryPoint`, `EconomyManager`, `StatusHud`. | Test delivery loop |
 | 2026-11-08 | Delivery loop confirmed. Wrote and confirmed `TimeManager`, `DayNightCycle`, `DayTransition`, `DailyRewards`. Milestones 04 and 05 complete. | UI authoring, Milestone 06 |
 | 2026-11-08 | UI moved to Editor-authored `Main Canvas` panels. RPG inventory removed. `PlayerEnergy` and `BedInteractable` written; Milestone 06 tested step by step: bed prompt and "too early" refusal, sleep after 6 PM, low-energy warning and sprint lock, collapse with 60% wake energy, drain tests. **Milestone 06 complete.** Both .md files rewritten. | Milestone 07, step 7.1 |
+| 2026-11-08 | Milestone 07: grey-box Home built. `BillsManager` and `BillsDesk` written (`Bills/` folder); `StatusHud` got a bills line. Fixed the `NextBillDay` bug. Tested: auto-pay on Day 8, debt when broke, debt growth, paying at the desk. **Milestone 07 complete.** Both .md files rewritten. | Milestone 08, step 8.1 |
 
 ## Decisions Log
 
@@ -239,7 +243,7 @@ Plan for Milestone 07 (one Unity step at a time):
 | Inventory | Removed; physical carrying only. Info lives on the future Smartphone |
 | Energy system | Drain per hour + carry weight + sprint. Sleep restores 100%, collapse wakes with 60%. Bed usable after 6 PM or at ≤ 30% energy |
 | Script delivery method | Write scripts in chat only |
-| Weekly bills (PROPOSED, confirm in Milestone 07) | Charged every 7th morning. Rent $70, electricity $15. Unpaid becomes debt |
+| Weekly bills | Charged on Day 8, 15, 22... (every 7th morning) by `BillsManager`. Rent $70, electricity $15 (editable in the Inspector). Old debt is paid first, then the new bills. Unpaid bills become debt. Debt lives in `BillsManager`. Player can pay debt at the `BillsDesk`. No interest or eviction yet |
 | Unity version / pipeline | Unity `6000.3.23f1`, URP |
 
 ---

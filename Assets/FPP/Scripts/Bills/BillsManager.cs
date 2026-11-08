@@ -23,7 +23,9 @@ public sealed class BillsManager : MonoBehaviour
     public int Debt { get; private set; }
     public int WeeklyRent => weeklyRent;
     public int WeeklyElectricity => weeklyElectricity;
-    public int WeeklyTotal => weeklyRent + weeklyElectricity;
+
+    public int VehicleRental { get; private set; }
+    public int WeeklyTotal => weeklyRent + weeklyElectricity + VehicleRental;
 
     /// <summary>Fired when the debt amount changes. Parameter is the new debt.</summary>
     public event Action<int> DebtChanged;
@@ -46,6 +48,12 @@ public sealed class BillsManager : MonoBehaviour
             int cycles = (today - firstBillDay) / billingIntervalDays + 1;
             return firstBillDay + cycles * billingIntervalDays;
         }
+    }
+
+    /// <summary>Weekly vehicle rental fee. 0 = no vehicle rented. Set by the rental office.</summary>
+    public void SetVehicleRental(int weeklyFee)
+    {
+        VehicleRental = Mathf.Max(0, weeklyFee);
     }
 
     public int DaysUntilNextBill => time != null ? NextBillDay - time.Day : 0;
@@ -111,6 +119,7 @@ public sealed class BillsManager : MonoBehaviour
         // 2. This week's bills
         PayBill(economy, "Rent", weeklyRent);
         PayBill(economy, "Electricity", weeklyElectricity);
+        PayBill(economy, "Vehicle rental", VehicleRental);
 
         BillsProcessed?.Invoke();
     }
