@@ -62,7 +62,9 @@ FPP Scene
 │   ├─ Bed                  (grey-box cube, layer Default, Box Collider + BedInteractable)
 │   └─ BillsDesk            (cube, Box Collider + BillsDesk)
 ├─ RentalOffice             (grey-box room, Counter with RentalOffice, ParkingSpot trigger area)
+├─ MapCamera                (orthographic, rotation 90,0,0, height 150, Size ~60, Target Texture = MapRT, no Audio Listener)
 ├─ Main Canvas              (Screen Space - Overlay, CanvasScaler 2560x1440 Match 0.5)
+│   ├─ Phone_Panel          (640x1100, centre: PhoneBody > Screen > Header/ClockText, TabBar/Tab_Deliveries|Tab_Map|Tab_Info, Pages/Page_Deliveries|Page_Map|Page_Info, HintText; hidden by SmartphoneUI at start)
 │   ├─ Status_Panel         (MoneyText, MoneyChangeText, DayText, DeliveriesText, BillsText, EnergyBar_Fill, EnergyText)
 │   ├─ Interaction_Panel    (Crosshair, RingBack, RingFill, PromptText, ToastText, HintsText, Inspect_SubPanel)
 │   └─ DayTransition_Panel  (BlackScreen, TextContainer: DayTitleText, DaySubtitleText)
@@ -91,12 +93,13 @@ Move files by **dragging inside the Unity Project window** (never in Explorer/Fi
 | `Energy/` | `PlayerEnergy.cs`, `BedInteractable.cs` |
 | `Bills/` | `BillsManager.cs`, `BillsDesk.cs` |
 | `Vehicles/` | `RentalOffice.cs`, `DeliveryVehicle.cs`, `VehicleCargo.cs` |
+| `Phone/` | `SmartphoneUI.cs` |
 
 **Planned folders (create when the system is built):**
 
 | Folder (under `Assets/FPP/Scripts/`) | Future scripts |
 |---|---|
-| `Phone/` | smartphone UI, map, markers |
+| `Phone/` (more scripts) | delivery list, town map, markers |
 | `Save/` | save/load system |
 | `Menus/` | main menu, pause menu, settings |
 
@@ -168,8 +171,14 @@ All UI is authored under **`Main Canvas`** with serialized drag-and-drop referen
 - **`DeliveryVehicle`**: on the root of the truck prefab (Rigidbody, forward = +Z; children `DriverCamera` and `ExitPoint` found by name). `IInteractable`: E to get in (hands must be empty). Arcade driving (no wheel colliders): W/S throttle and brake/reverse, A/D steer, Space handbrake, E to get out. Enter: `PlayerInputLock.Lock`, player's `CharacterController` disabled, player parented to the truck. Exit: unparent, move to `ExitPoint`, re-enable controller, unlock. Removes friction from the truck's own colliders (physics material) so it never sticks to the ground. The truck's wheel meshes must have NO colliders.
 - **`VehicleCargo`**: on the `CargoBed` child of the truck (Box Collider, not trigger, covering the open bed). Grid of spots (`columns` x `rows`, measured in the truck root's own axes, so the object's own scale/rotation does not matter). Holding a package + E: loads it into the next free spot, fixed in place (kinematic, collisions with the truck ignored), visible while driving. Hands empty, look at a package + E: takes that package out (prompt shows its address). `Count`, `Capacity`. Packages undelivered at the new morning are destroyed by `PackageCounter` as usual.
 
+### 6.9d Phone (`Phone/`) — CONFIRMED WORKING
+- **`SmartphoneUI`**: singleton on the FPP Player. Fields: `panelRoot` (Phone_Panel), `clockText`, `tabLabels[]` and `pages[]` (same order: Deliveries, Map, Info), active/inactive tab colours. **Tab** / gamepad View opens and closes; **Q / E** / gamepad LB / RB switch pages (wraps around). Opening locks the player through `PlayerInputLock` (the game clock keeps running). Refuses to open while `PlayerInputLock.IsLocked` (driving, transition...) or while inspecting an item. Closes on `TimeManager.DayEnded`. Public: `IsOpen`, `CurrentPage`, `SetPage(int)`, `Close()`. Events `Opened`, `Closed`, `PageChanged(int)`. Page content scripts subscribe to `Opened` / `PageChanged` to refresh.
+- **`PhoneDeliveriesPage`**: on the FPP Player; `listText` (the `ListText` TMP on `Page_Deliveries`). Shows `Day N   x of y left`, a yellow "Collect your packages at the warehouse" line before collecting, then each package: address, size, reward; delivered ones are greyed with a strike-through and "Done". Refreshes on `DailyBatchManager.BatchChanged` and `SmartphoneUI.Opened`.
+- **`PhoneInfoPage`**: on the FPP Player; `infoText` (the `InfoText` TMP on `Page_Info`). Shows money, energy %, debt (red when > 0), next bill day with rent / electricity / vehicle rental and the total. Refreshes every frame while the phone is open.
+- **`PhoneMapMarkers`**: on the FPP Player. Fields: `mapCamera` (`MapCamera`), `mapImage` (`MapImage` rect), `mapPageIndex` (1), `places[]` (label, target, colour: Warehouse = PackageCounter, Home, Rental office), `rentalOffice` (the Counter with `RentalOffice`), `labelFont`, colours and sizes. Builds its marker images from code inside `MapImage`: places, houses with an undelivered package (from `DailyBatchManager.Assignments` + `HouseId.TryGet`, rebuilt on open and on batch changes), the rented truck (`RentalOffice.IsRented` / `SpawnedVehicle`) and the player arrow (rotated by `Camera.main` yaw). World position -> marker position uses `mapCamera.WorldToViewportPoint`, so moving the map camera or changing its size needs no other change. The map camera is only enabled while the phone is open on the Map page.
+
 ### 6.10 Components on FPP Player
-`CharacterController`, `FppPlayerController`, `PlayerInteractor`, `ItemCarrier`, `InteractionHud`, `HeadBob`, `FootstepPlayer`, `StatusHud`, `DayTransition`, `PlayerEnergy` (+ `PlayerInputLock` auto-added).
+`CharacterController`, `FppPlayerController`, `PlayerInteractor`, `ItemCarrier`, `InteractionHud`, `HeadBob`, `FootstepPlayer`, `StatusHud`, `DayTransition`, `PlayerEnergy`, `SmartphoneUI` (+ `PlayerInputLock` auto-added).
 
 ### 6.11 Components on Manager
 `EconomyManager`, `DailyBatchManager`, `TimeManager`, `DailyRewards`, `DayNightCycle`, `BillsManager`.
@@ -204,6 +213,8 @@ All UI is authored under **`Main Canvas`** with serialized drag-and-drop referen
 - Weekly bills (Day 8, 15, 22...), rent/electricity auto-payment, debt, HUD bills line and the BillsDesk were tested and confirmed (2026-11-08).
 - Vehicle rental, deposit, weekly fee on the bills line, driving, enter/exit, parking check, loading and unloading packages in the truck bed, and the full vehicle delivery route were tested and confirmed (2026-11-09).
 - The home, rental office and truck bed are grey-box / placeholder; real art comes with Milestone 10.
+- Smartphone (Deliveries, Map, Info pages) tested and confirmed (2026-11-09). The map camera sees the same lighting as the game, so the map is dark at night (possible polish: a dedicated map light or unlit shading).
+- Marker squares are plain coloured images (no icon sprites yet); real icons can be added in Milestone 11 polish.
 - The truck has no mouse look while driving and no engine sound yet (Milestone 11 polish).
 - Debt has no extra penalty yet (no interest, no eviction). Possible later polish in Milestone 11.
 

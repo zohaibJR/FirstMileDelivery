@@ -29,21 +29,24 @@
 
 ## CURRENT STEP
 
-**Milestone 09 — Smartphone and Navigation. Step 9.1: Create smartphone UI.**
+**Milestone 10 — Town and Environment. Step 10.1: Create the residential street layout.**
 
-Milestones 06 (Energy and Sleep), 07 (Home and Weekly Bills), and 08 (Rental Vehicle System) are complete and confirmed.
+Milestones 06 (Energy and Sleep), 07 (Home and Weekly Bills), 08 (Rental Vehicle System) and 09 (Smartphone and Navigation) are complete and confirmed.
 
-Plan for Milestone 09:
+Before building Milestone 10, Claude asks the user (do not assume) what art/assets they have (house models, road kit, props) and how big the town should be. The existing grey-box objects (houses, warehouse, home, rental office) must keep their scripts and IDs when they are replaced by real art; `MapCamera` and the phone map markers pick up moved objects automatically.
 
-1. Create smartphone UI. (9.1)
-2. Create daily delivery list. (9.2)
-3. Display package addresses. (9.3)
-4. Create simple town map. (9.4)
-5. Add house location markers. (9.5)
-6. Add player location marker. (9.6)
-7. Display money and energy. (9.7)
-8. Display debt and upcoming bills. (9.8)
-9. Test navigation and delivery information. (9.9)
+Plan for Milestone 10:
+
+1. Create residential street layout. (10.1)
+2. Create reusable house prefabs. (10.2)
+3. Add unique house numbers. (10.3)
+4. Create warehouse exterior. (10.4)
+5. Create rental office exterior. (10.5)
+6. Add roads and sidewalks. (10.6)
+7. Add streetlights and environmental props. (10.7)
+8. Add ambient sounds. (10.8)
+9. Add basic pedestrian activity. (10.9)
+10. Optimize town performance. (10.10)
 
 ---
 
@@ -59,8 +62,8 @@ Plan for Milestone 09:
 | 06 Energy and Sleep | 3–4 days | 10/10 |
 | 07 Home and Weekly Bills | 3–5 days | 10/10 |
 | 08 Rental Vehicle System | 5–8 days | 11/11 |
-| 09 Smartphone and Navigation | 3–5 days | 0/9 (current) |
-| 10 Town and Environment | 2–4 weeks | 0/10 |
+| 09 Smartphone and Navigation | 3–5 days | 9/9 |
+| 10 Town and Environment | 2–4 weeks | 0/10 (current) |
 | 11 Gameplay Polish and Progression | 3–5 weeks | 0/45 |
 | 12 Steam Release Preparation | 3–6 weeks | 0/13 |
 
@@ -199,15 +202,15 @@ Plan for Milestone 09:
 
 **Done when:** the player can use a smartphone to check assigned deliveries, addresses, map locations, money, energy and upcoming bills.
 
-- [ ] 9.1 Create smartphone UI
-- [ ] 9.2 Create daily delivery list
-- [ ] 9.3 Display package addresses
-- [ ] 9.4 Create simple town map
-- [ ] 9.5 Add house location markers
-- [ ] 9.6 Add player location marker
-- [ ] 9.7 Display money and energy
-- [ ] 9.8 Display debt and upcoming bills
-- [ ] 9.9 Test navigation and delivery information
+- [x] 9.1 Create smartphone UI
+- [x] 9.2 Create daily delivery list
+- [x] 9.3 Display package addresses
+- [x] 9.4 Create simple town map
+- [x] 9.5 Add house location markers
+- [x] 9.6 Add player location marker
+- [x] 9.7 Display money and energy
+- [x] 9.8 Display debt and upcoming bills
+- [x] 9.9 Test navigation and delivery information
 
 ---
 
@@ -330,6 +333,8 @@ Plan for Milestone 09:
 | 2026-11-08 | UI moved to Editor-authored `Main Canvas` panels. RPG inventory removed. `PlayerEnergy` and `BedInteractable` written; Milestone 06 tested step by step: bed prompt and "too early" refusal, sleep after 6 PM, low-energy warning and sprint lock, collapse with 60% wake energy, drain tests. **Milestone 06 complete.** Both .md files rewritten. | Milestone 07, step 7.1 |
 | 2026-11-08 | Milestone 07: grey-box Home built. `BillsManager` and `BillsDesk` written (`Bills/` folder); `StatusHud` got a bills line. Fixed the `NextBillDay` bug. Tested: auto-pay on Day 8, debt when broke, debt growth, paying at the desk. **Milestone 07 complete.** Both .md files rewritten. | Milestone 08, step 8.1 |
 | 2026-11-09 | Milestone 08 — Rental Vehicle System completed and confirmed. Vehicle rental, agreement, deposit, weekly charge, driving, enter/exit, parking and package loading/unloading tested. | Milestone 09, step 9.1 |
+| 2026-11-09 | Milestone 09 started. Phone panel built in `Main Canvas`; `SmartphoneUI.cs` written (`Phone/` folder) and added to FPP Player. Both .md files updated. | Test 9.1, then 9.2 delivery list |
+| 2026-11-09 | Milestone 09 completed and confirmed: `SmartphoneUI`, `PhoneDeliveriesPage` (list with addresses, size, reward, Done state), `PhoneInfoPage` (money, energy, debt, bills), live top-down `MapCamera` + `MapRT` + `MapImage`, `PhoneMapMarkers` (player arrow, undelivered houses, Warehouse/Home/Rental, rented truck). Both .md files rewritten. | Milestone 10, step 10.1 |
 
 ---
 
@@ -354,6 +359,7 @@ Plan for Milestone 09:
 | Inventory | Removed; physical carrying only. Info lives on the future Smartphone |
 | Energy system | Drain per hour + carry weight + sprint. Sleep restores 100%, collapse wakes with 60%. Bed usable after 6 PM or at ≤ 30% energy |
 | Weekly bills | Charged on Day 8, 15, 22... (every 7th morning) by `BillsManager`. Rent $70, electricity $15 (editable in the Inspector). Old debt is paid first, then the new bills. Unpaid bills become debt. Debt lives in `BillsManager`. Player can pay debt at the `BillsDesk`. No interest or eviction yet |
+| Smartphone | Screen overlay (`Phone_Panel`), opened with **Tab** (gamepad View), pages switched with **Q / E** (gamepad LB / RB). Pages: Deliveries, Map, Info. While open the player is frozen but the game clock keeps running. Cannot be opened while driving, inspecting an item or during the day transition. Closes automatically when the day ends |
 | Rental vehicle | Player rents a vehicle, pays a deposit and weekly rental fee, and can drive, park, load and unload packages. |
 | Customer interactions | Customers can respond to doorbells, receive handovers and confirm deliveries. |
 | Delivery instructions | Each delivery can have instructions such as doorstep, behind door, garage, direct handover or do-not-ring. |
