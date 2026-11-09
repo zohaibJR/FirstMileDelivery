@@ -90,6 +90,37 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &211467287723571887
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1161305580354607828}
+  m_Layer: 0
+  m_Name: ExitPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1161305580354607828
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 211467287723571887}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: -1, z: 0, w: 0}
+  m_LocalPosition: {x: -1.384, y: 0.155, z: 0.523}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 9193761969943558034}
+  m_LocalEulerAnglesHint: {x: 0, y: -180, z: 0}
 --- !u!1 &570908162884791672
 GameObject:
   m_ObjectHideFlags: 0
@@ -608,6 +639,7 @@ GameObject:
   m_Component:
   - component: {fileID: 9193761969943558034}
   - component: {fileID: 7162452371453420354}
+  - component: {fileID: 764629700258666830}
   m_Layer: 0
   m_Name: pickupTruck 1
   m_TagString: Untagged
@@ -633,6 +665,8 @@ Transform:
   - {fileID: 9177449410873967943}
   - {fileID: 526165447714284670}
   - {fileID: 2945294948423348642}
+  - {fileID: 1161305580354607828}
+  - {fileID: 4860775965857863068}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!54 &7162452371453420354
@@ -662,6 +696,28 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!114 &764629700258666830
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4191386107495314848}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0f2f2c9961fb3ea4aab93b93d605f509, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DeliveryVehicle
+  driverCamera: {fileID: 4860775965857863068}
+  exitPoint: {fileID: 1161305580354607828}
+  maxSpeed: 80
+  maxReverseSpeed: 5
+  acceleration: 6
+  brakeStrength: 14
+  coastDeceleration: 2.5
+  steerSpeed: 70
+  sideGrip: 8
+  centerOfMass: {x: 0, y: 0.35, z: 0}
 --- !u!1 &5306904644006563105
 GameObject:
   m_ObjectHideFlags: 0
@@ -1071,3 +1127,34 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &8465876940387802830
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4860775965857863068}
+  m_Layer: 0
+  m_Name: DriverCamera
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4860775965857863068
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8465876940387802830}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.08131028, y: -0, z: -0, w: 0.9966889}
+  m_LocalPosition: {x: 0.03, y: 3.41, z: -5.72}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 9193761969943558034}
+  m_LocalEulerAnglesHint: {x: 9.328, y: 0, z: 0}

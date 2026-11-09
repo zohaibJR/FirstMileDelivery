@@ -84,6 +84,22 @@ public sealed class RentalOffice : MonoBehaviour, IInteractable
 
     private void ReturnVehicle()
     {
+        if (spawnedVehicle != null && parkingSpot != null)
+        {
+            Collider zone = parkingSpot.GetComponent<Collider>();
+            if (zone != null)
+            {
+                Vector3 vanPosition = spawnedVehicle.transform.position;
+                vanPosition.y = zone.bounds.center.y;
+
+                if (!zone.bounds.Contains(vanPosition))
+                {
+                    Notifier.Show("Park the van on the parking spot first");
+                    GameAudio.Play(ProceduralSfx.Denied, transform.position, 0.7f);
+                    return;
+                }
+            }
+        }
         EconomyManager economy = EconomyManager.Instance;
         BillsManager bills = BillsManager.Instance;
 

@@ -725,7 +725,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -4.199951, y: 0}
+  m_AnchoredPosition: {x: -4.2001953, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &215713151
@@ -3408,6 +3408,7 @@ Transform:
   - {fileID: 29279789}
   - {fileID: 714945225}
   - {fileID: 1883887564}
+  - {fileID: 1371170304}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1290622083
@@ -3914,11 +3915,11 @@ Transform:
   m_GameObject: {fileID: 1371170303}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 7.31, y: 0.099999994, z: -9.957001}
+  m_LocalPosition: {x: 5.21, y: -0.40800002, z: 1.0129995}
   m_LocalScale: {x: 5, y: 0.2, z: 5}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 1282242884}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!65 &1371170305
 BoxCollider:
@@ -3935,12 +3936,12 @@ BoxCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Size: {x: 1, y: 14.103965, z: 1}
+  m_Center: {x: 0, y: 6.5519805, z: 0}
 --- !u!23 &1371170306
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -5818,7 +5819,7 @@ MonoBehaviour:
   deposit: 100
   weeklyFee: 40
   parkingSpot: {fileID: 1371170304}
-  vehiclePrefab: {fileID: 4191386107495314848, guid: ba13a0b64c9465c49b65afad01e33c23, type: 3}
+  vehiclePrefab: {fileID: 4191386107495314848, guid: b74a00e4107d23043807289aea520530, type: 3}
 --- !u!1 &1906981373
 GameObject:
   m_ObjectHideFlags: 0
@@ -7381,4 +7382,3 @@ SceneRoots:
   - {fileID: 109393111}
   - {fileID: 1424981866}
   - {fileID: 1282242884}
-  - {fileID: 1371170304}
