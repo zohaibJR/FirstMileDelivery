@@ -3046,8 +3046,8 @@ MonoBehaviour:
     weight: 2
   - definition: {fileID: 11400000, guid: 649f85d0f19b0ba4d8c61bf0a3bdfc44, type: 2}
     weight: 1
-  minPackages: 5
-  maxPackages: 10
+  minPackages: 3
+  maxPackages: 5
   allowRepeatHouses: 1
   startDay: 1
   generateOnStart: 1

@@ -301,6 +301,75 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &745205476486267254
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5691831893351596596}
+  - component: {fileID: 594341732489077868}
+  - component: {fileID: 1714807351357342751}
+  m_Layer: 0
+  m_Name: CargoBed
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5691831893351596596
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 745205476486267254}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.7071068, y: -0, z: -0, w: 0.7071067}
+  m_LocalPosition: {x: 0.31302643, y: 0, z: -1.5752769}
+  m_LocalScale: {x: 144.91966, y: 144.91965, z: 144.91965}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 9193761969943558034}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &594341732489077868
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 745205476486267254}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.010828282, y: 0.010565806, z: 0.0068568527}
+  m_Center: {x: -0.002141686, y: -0.00019245165, z: 0.008727062}
+--- !u!114 &1714807351357342751
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 745205476486267254}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 58ce141a45b3f3940adbf9f114eb4645, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::VehicleCargo
+  columns: 3
+  rows: 2
+  aimDistance: 6
 --- !u!1 &957622723155304118
 GameObject:
   m_ObjectHideFlags: 0
@@ -641,6 +710,7 @@ Transform:
   - {fileID: 294322146655678237}
   - {fileID: 4920185233365200589}
   - {fileID: 9177449410873967943}
+  - {fileID: 5691831893351596596}
   - {fileID: 526165447714284670}
   - {fileID: 2945294948423348642}
   - {fileID: 1161305580354607828}
@@ -715,8 +785,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1.7685661, y: 1.8095571, z: 5.02729}
-  m_Center: {x: -0.015371323, y: 0.89666146, z: 0.09735179}
+  m_Size: {x: 1.7685661, y: 1.1526, z: 5.02729}
+  m_Center: {x: -0.015371323, y: 0.56818295, z: 0.09735179}
 --- !u!1 &5306904644006563105
 GameObject:
   m_ObjectHideFlags: 0

@@ -61,6 +61,7 @@ FPP Scene
 ├─ Home                     (grey-box room: Floor, 5 wall cubes with a 2-unit doorway, Roof)
 │   ├─ Bed                  (grey-box cube, layer Default, Box Collider + BedInteractable)
 │   └─ BillsDesk            (cube, Box Collider + BillsDesk)
+├─ RentalOffice             (grey-box room, Counter with RentalOffice, ParkingSpot trigger area)
 ├─ Main Canvas              (Screen Space - Overlay, CanvasScaler 2560x1440 Match 0.5)
 │   ├─ Status_Panel         (MoneyText, MoneyChangeText, DayText, DeliveriesText, BillsText, EnergyBar_Fill, EnergyText)
 │   ├─ Interaction_Panel    (Crosshair, RingBack, RingFill, PromptText, ToastText, HintsText, Inspect_SubPanel)
@@ -89,12 +90,12 @@ Move files by **dragging inside the Unity Project window** (never in Explorer/Fi
 | `Core/` | `Notifier.cs`, `InputGlyphs.cs`, `GameAudio.cs` (also contains `ProceduralSfx`) |
 | `Energy/` | `PlayerEnergy.cs`, `BedInteractable.cs` |
 | `Bills/` | `BillsManager.cs`, `BillsDesk.cs` |
+| `Vehicles/` | `RentalOffice.cs`, `DeliveryVehicle.cs`, `VehicleCargo.cs` |
 
 **Planned folders (create when the system is built):**
 
 | Folder (under `Assets/FPP/Scripts/`) | Future scripts |
 |---|---|
-| `Vehicles/` | rental office, vehicle controller, enter/exit, parking |
 | `Phone/` | smartphone UI, map, markers |
 | `Save/` | save/load system |
 | `Menus/` | main menu, pause menu, settings |
@@ -162,6 +163,11 @@ All UI is authored under **`Main Canvas`** with serialized drag-and-drop referen
 - **`BillsManager`**: singleton on `Manager`. `firstBillDay` 8, `billingIntervalDays` 7, `weeklyRent` 70, `weeklyElectricity` 15. Subscribes to `TimeManager.DayStarted`; on a billing day it first tries to pay old debt, then pays Rent and Electricity through `EconomyManager.TrySpend`. Anything unaffordable is added to `Debt` (red toast). Public: `Debt`, `WeeklyRent`, `WeeklyElectricity`, `WeeklyTotal`, `NextBillDay`, `DaysUntilNextBill`, `ChargeBills()`, `PayDebt()` (pays what the player can afford, returns amount), `SetDebt()` (for saves). Events `DebtChanged(int)`, `BillsProcessed`. Debug: Charge Bills Now, Add $50 Debt. **Debt lives here, not in `EconomyManager`.** Vehicle rental (Milestone 08) must add its weekly fee here.
 - **`BillsDesk`**: `IInteractable` on the desk at home. Prompt shows debt or the next bill day; E pays as much debt as the player can afford.
 
+### 6.9c Vehicles (`Vehicles/`) — CONFIRMED WORKING
+- **`RentalOffice`**: `IInteractable` on the rental `Counter`. `vehicleName`, `deposit` (100), `weeklyFee` (40), `parkingSpot`, `vehiclePrefab`. Renting needs no debt and enough money: deposit via `EconomyManager.TrySpend`, `BillsManager.SetVehicleRental(weeklyFee)`, vehicle spawns on the parking spot. Returning: the vehicle must be inside the `ParkingSpot` trigger area and its cargo bed must be empty; deposit is refunded and the weekly fee stops. `IsRented`.
+- **`DeliveryVehicle`**: on the root of the truck prefab (Rigidbody, forward = +Z; children `DriverCamera` and `ExitPoint` found by name). `IInteractable`: E to get in (hands must be empty). Arcade driving (no wheel colliders): W/S throttle and brake/reverse, A/D steer, Space handbrake, E to get out. Enter: `PlayerInputLock.Lock`, player's `CharacterController` disabled, player parented to the truck. Exit: unparent, move to `ExitPoint`, re-enable controller, unlock. Removes friction from the truck's own colliders (physics material) so it never sticks to the ground. The truck's wheel meshes must have NO colliders.
+- **`VehicleCargo`**: on the `CargoBed` child of the truck (Box Collider, not trigger, covering the open bed). Grid of spots (`columns` x `rows`, measured in the truck root's own axes, so the object's own scale/rotation does not matter). Holding a package + E: loads it into the next free spot, fixed in place (kinematic, collisions with the truck ignored), visible while driving. Hands empty, look at a package + E: takes that package out (prompt shows its address). `Count`, `Capacity`. Packages undelivered at the new morning are destroyed by `PackageCounter` as usual.
+
 ### 6.10 Components on FPP Player
 `CharacterController`, `FppPlayerController`, `PlayerInteractor`, `ItemCarrier`, `InteractionHud`, `HeadBob`, `FootstepPlayer`, `StatusHud`, `DayTransition`, `PlayerEnergy` (+ `PlayerInputLock` auto-added).
 
@@ -196,12 +202,14 @@ All UI is authored under **`Main Canvas`** with serialized drag-and-drop referen
 - Delivered packages stay on the porch 120 s; undelivered ones are destroyed at the next morning.
 - **Confirmed working in Unity (user tests through 2026-11-08):** movement, interaction, carry/inspect/drop, warehouse counter + opening hours, delivery loop, wallet, salary, bonus, clock, day/night, day transition, authored UI panels, energy drain, carry/sprint drain, low-energy sprint lock, bed (too early refusal, sleep after 6 PM, wake at 7:00 AM with full energy), collapse (wake with 60%).
 - Weekly bills (Day 8, 15, 22...), rent/electricity auto-payment, debt, HUD bills line and the BillsDesk were tested and confirmed (2026-11-08).
-- The home is a grey-box room; the real interior and house art come with Milestone 10.
+- Vehicle rental, deposit, weekly fee on the bills line, driving, enter/exit, parking check, loading and unloading packages in the truck bed, and the full vehicle delivery route were tested and confirmed (2026-11-09).
+- The home, rental office and truck bed are grey-box / placeholder; real art comes with Milestone 10.
+- The truck has no mouse look while driving and no engine sound yet (Milestone 11 polish).
 - Debt has no extra penalty yet (no interest, no eviction). Possible later polish in Milestone 11.
 
 ## 9. Proposed Architecture for Upcoming Systems
 
-- **Vehicle rental (Milestone 08, `Vehicles/`):** rental office, deposit through `EconomyManager.TrySpend`, weekly rental fee charged by `BillsManager` (add a `vehicleRental` amount that is 0 until a vehicle is rented), one drivable vehicle, enter/exit, parking, package loading.
+- **Milestone 11 (planned, see roadmap):** package fragility and damage, customer doorbell interactions, delivery instructions, failed deliveries, home upgrades (beds). These will extend `Package`, `PackageDefinition`, `DeliveryPoint` and `DailyBatchManager`.
 - **`Smartphone` (Milestone 09):** deliveries list, map, wallet, bills view.
 - **Save system (Milestone 12):** managers expose state through serializable data classes.
 

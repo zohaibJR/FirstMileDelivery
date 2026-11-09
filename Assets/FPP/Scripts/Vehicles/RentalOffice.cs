@@ -100,6 +100,17 @@ public sealed class RentalOffice : MonoBehaviour, IInteractable
                 }
             }
         }
+
+        if (spawnedVehicle != null)
+        {
+            VehicleCargo cargo = spawnedVehicle.GetComponentInChildren<VehicleCargo>(true);
+            if (cargo != null && cargo.Count > 0)
+            {
+                Notifier.Show("Unload the truck first");
+                GameAudio.Play(ProceduralSfx.Denied, transform.position, 0.7f);
+                return;
+            }
+        }
         EconomyManager economy = EconomyManager.Instance;
         BillsManager bills = BillsManager.Instance;
 
